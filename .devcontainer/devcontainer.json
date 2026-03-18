@@ -1,0 +1,28 @@
+{
+  "name": "MansOS Development",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-python.python"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+  "mounts": [
+    "source=/dev,target=/dev,type=bind,consistency=cached"
+  ],
+
+  "runArgs": [
+    "--privileged"
+  ],
+
+  "remoteUser": "vscode"
+}

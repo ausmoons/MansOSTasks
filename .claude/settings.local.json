@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker exec:*)",
+      "Bash(powershell.exe -Command \"Get-PnpDevice -Class Ports -PresentOnly | Select-Object Status, FriendlyName, InstanceId | Format-Table -AutoSize\")",
+      "Bash(powershell.exe -Command \"mode\")",
+      "Bash(python:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
