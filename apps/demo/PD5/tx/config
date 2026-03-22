@@ -1,0 +1,6 @@
+#
+# PD5 transmitter
+#
+
+USE_RADIO=y
+USE_PRINT=y

@@ -182,13 +182,13 @@ PLATFORM_ACTION ?= $(BUILDDIR)/config.saved platform_build
 
 #===== Tools =====
 
-SEAL = python $(MOSROOT)/tools/parser/main.py --path '$(MOSROOT)'
+SEAL = python3 $(MOSROOT)/tools/parser/main.py --path '$(MOSROOT)'
 
-MEMDUMP = python $(MOS)/make/scripts/memdump.py
-STACKDUMP = python $(MOS)/make/scripts/stackdump.py
+MEMDUMP = python3 $(MOS)/make/scripts/memdump.py
+STACKDUMP = python3 $(MOS)/make/scripts/stackdump.py
 
-MOTELIST ?= python $(MOSROOT)/tools/lib/motelist.py
-SENSORLIST ?= python $(MOS)/make/scripts/sensorlist.py
+MOTELIST ?= python3 $(MOSROOT)/tools/lib/motelist.py
+SENSORLIST ?= python3 $(MOS)/make/scripts/sensorlist.py
 
 ifeq ($(UNAME),Darwin)
   # apple wants special handling...
@@ -232,7 +232,7 @@ ifeq ($(USE_REPROGRAMMING),y)
 LDFLAGS += "-Wl,--section-start=.text=0x5000,--section-start=.usertext=0xf000,--section-start=.start=0x4000,--defsym=_reset_vector__=0x4000"
 endif
 
-LINKER_SCRIPT = python $(MOS)/make/scripts/link.py
+LINKER_SCRIPT = python3 $(MOS)/make/scripts/link.py
 
 # include the file where platform independent sources are defined
 include $(MAKEFILE_HIL)
@@ -473,7 +473,7 @@ options:
 
 help: targets options
 	
-python_version_full := $(wordlist 2,4,$(subst ., ,$(shell python --version 2>&1)))
+python_version_full := $(wordlist 2,4,$(subst ., ,$(shell python3 --version 2>&1)))
 python_version_major := $(word 1,${python_version_full})
 python-serial.python.2 := python-serial
 python-serial.python.3 := python3-serial
