@@ -17,7 +17,9 @@ RUN apt-get update && apt-get install -y \
     git \
     && pip3 install --no-cache-dir pyserial \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/python3 /usr/local/bin/python \
+    && usermod -a -G dialout vscode
 
 # Set working directory
 WORKDIR /workspace

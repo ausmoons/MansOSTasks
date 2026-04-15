@@ -2,12 +2,6 @@
 
 Multihop (daudzlēciena) bezvadu sensoru tīkls TmoteSky (TelosB) motēm ar trīs dažādu mezglu tipiem.
 
-## ⚡ Ātrs Sākums
-
-**Pirmo reizi?** Skatīt **[QUICKSTART.md](QUICKSTART.md)** ātrajai pamācībai:
-- Kā build visus mezglus
-- Kā upload uz motēm
-- Kā nolasīt datus no Gateway
 
 ## 📋 Projekta Apraksts
 
@@ -25,23 +19,6 @@ Multihop (daudzlēciena) bezvadu sensoru tīkls TmoteSky (TelosB) motēm ar trī
                                 │
 [Sensor 3] ─────────────────────┘
 ```
-
-## 📁 Struktūra
-
-```
-PD6/
-├── pd6_packet.h        # Kopīgā paketes struktūra visiem mezgliem
-├── sensor/
-│   ├── main.c          # Sensora mezgla kods
-│   └── Makefile
-├── relay/
-│   ├── main.c          # Releja mezgla kods
-│   └── Makefile
-├── gateway/
-│   ├── main.c          # Vārtejas mezgla kods
-│   └── Makefile
-├── QUICKSTART.md       # Ātrās pamācības
-└── README.md           # Šis fails (detalizēta dokumentācija)
 ```
 
 ## 🔧 Paketes Struktūra
@@ -49,8 +26,12 @@ PD6/
 Visi mezgli izmanto vienotu paketes formātu (`pd6_packet.h`):
 
 ```c
-typedef struct {
-    char key[8];           // "PD6MHOP\0" - tīkla identifikators
+#define PD6_KEY_LEN 8
+#define PD6_KEY_STR "PD6MHOP\0"
+
+typedef struct __attribute__((packed))
+{
+    char key[PD6_KEY_LEN]; // "PD6MHOP" - tīkla identifikators
     uint16_t sourceId;     // Sensora unikālais ID
     uint32_t seq;          // Secības numurs no sensora
     uint16_t lightValue;   // Gaismas sensora vērtība (0-65535)
@@ -62,31 +43,16 @@ typedef struct {
 
 ### 1. Sensor Mezgls
 
-Katram sensoram jānorāda unikāls ID (noklusējuma: 1):
-
 ```bash
 cd apps/demo/PD6/sensor
-
-# Sensors ar ID=1 (noklusējuma)
 make telosb
-
-# Sensors ar ID=2
-make telosb CONST=SENSOR_ID=2
-
-# Sensors ar ID=3
-make telosb CONST=SENSOR_ID=3
 ```
 
 ### 2. Relay Mezgls
 
 ```bash
 cd apps/demo/PD6/relay
-
-# Relejs ar ID=100 (noklusējuma)
 make telosb
-
-# Relejs ar ID=101
-make telosb CONST=RELAY_ID=101
 ```
 
 ### 3. Gateway Mezgls
@@ -143,10 +109,11 @@ python mos\make\scripts\ubsl.py --telosb -c COM9 -r -e -I -p apps\demo\PD6\gatew
 
 **Seriālais izvads:**
 ```
-Sensor Node ID=1 started
-Sent: ID=1 seq=1 light=1024
-Sent: ID=1 seq=2 light=1030
+Sensor started, ID=0x561f
+Sent: ID=0x561f seq=1 light=1024
+Sent: ID=0x561f seq=2 light=1030
 ```
+> ID tiek nolasīts automātiski no aparatūras (DS2411 čips) — nav jākonfigurē manuāli.
 
 ### Relay Mezgls (relay/main.c)
 
@@ -164,9 +131,9 @@ Sent: ID=1 seq=2 light=1030
 
 **Seriālais izvads:**
 ```
-Relay Node ID=100 started
-Relay: Forwarded - ID=1 seq=1 light=1024 hops=1
-Relay: Duplicate ignored - ID=1 seq=1
+Relay started, ID=0x3a2b
+Relay: Forwarded - ID=0x561f seq=1 light=1024 hops=1
+Relay: Duplicate ignored - ID=0x561f seq=1
 ```
 
 **Dublikātu noteikšana:**
@@ -191,11 +158,12 @@ Relay: Duplicate ignored - ID=1 seq=1
 **CSV Izvads:**
 ```
 sourceId,seq,lightValue,hopCount,rssi,lqi,totalReceived
-# Gateway started - waiting for packets...
-1,1,1024,0,-23,90,1
-2,1,980,1,-30,88,2
-1,2,1025,0,-23,91,3
+# Gateway started, ID=0x7f4c
+22047,1,1024,0,-23,90,1
+14891,1,980,1,-30,88,2
+22047,2,1025,0,-23,91,3
 ```
+> `sourceId` ir decimālais `localAddress` (piemēram, `0x561f` = `22047`).
 
 **Kolonnu nozīme:**
 - `sourceId` - sensora ID, kas radīja paketi
@@ -211,18 +179,20 @@ sourceId,seq,lightValue,hopCount,rssi,lqi,totalReceived
 ### Minimālā Konfigurācija
 
 Nepieciešamas **vismaz 3 motes:**
-1. **Sensor** (ID=1)
-2. **Relay** (ID=100)
+1. **Sensor** — unikāls ID automātiski no aparatūras
+2. **Relay** — unikāls ID automātiski no aparatūras
 3. **Gateway**
 
 ### Rekomendētā Konfigurācija
 
 Vismaz **4-5 motes** pilnīgam testam:
-1. **Sensor 1** (ID=1)
-2. **Sensor 2** (ID=2)
-3. **Relay 1** (ID=100)
-4. **Relay 2** (ID=101) - ievēro multihop
+1. **Sensor 1** — piem. ID=0x561f (tavs mote)
+2. **Sensor 2** — piem. ID=0x3a2b (cits mote)
+3. **Relay 1**
+4. **Relay 2** - ievēro multihop
 5. **Gateway**
+
+> **Svarīgi:** ID nav jākonfigurē manuāli. Katrs mote nolasa savu unikālo ID no iebūvētās DS2411 aparatūras čipa. Uzlādē vienu un to pašu `.ihex` failu uz visām motēm — katra zina savu ID pati.
 
 ### Testa Scenāriji
 
@@ -232,7 +202,7 @@ Vismaz **4-5 motes** pilnīgam testam:
 [Sensor 1] ─────> [Gateway]
 ```
 
-- Uzliec sensor uz vienas motes (ID=1)
+- Uzliec sensor uz vienas motes (ID piešķirts automātiski)
 - Uzliec gateway uz otras motes
 - Novieto tuvu (tajā pašā istabā)
 - Gateway saņems paketes ar `hopCount=0`
@@ -296,7 +266,7 @@ Vismaz **4-5 motes** pilnīgam testam:
 ```python
 import serial
 
-ser = serial.Serial('COM9', 115200)
+ser = serial.Serial('COM9', 38400)
 print("Listening for packets...")
 
 while True:
@@ -314,18 +284,18 @@ Saglabā CSV datus un analizē:
 
 ## 🔍 Unikālo ID Realizācija
 
-### Sensors
-- ID tiek definēts kompilācijas laikā ar `SENSOR_ID`
-- Noklusējuma vērtība: 1
-- Mainīt: `make telosb CONST=SENSOR_ID=X`
+Katrs mezgls automātiski nolasa savu unikālo ID no aparatūras — TelosB motei ir iebūvēta **DS2411** mikroshēma ar unikālu 8-baitu sērijas numuru. MansOS to pārvērš par 16-bitu `localAddress`, ko var tieši izmantot kodā.
 
-### Relay
-- ID tiek definēts kompilācijas laikā ar `RELAY_ID`
-- Noklusējuma vērtība: 100
-- Mainīt: `make telosb CONST=RELAY_ID=X`
+Vienāds `.ihex` fails var tikt uzlādēts uz visām motēm — katra zina savu ID pati.
 
-### Gateway
-- Nav ID (tikai viens gateway tīklā)
+### Zināmās Motēs
+
+| USB sērijas nr. | localAddress (hex) | localAddress (dec) | Loma |
+|-----------------|--------------------|--------------------|------|
+| M4AETB0A        | 0x561f             | 22047              | Sensor 1 |
+| M4AOQG8Q        | 0x69b0             | 27056              | Sensor 2 |
+
+> ID tika nolasīts automātiski, palaižot sensora firmware un klausoties seriālo portu (`Sensor started, ID=0x561f`).
 
 ## 🐛 Troubleshooting
 

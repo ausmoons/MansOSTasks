@@ -2,6 +2,8 @@ SOURCES = main.c
 
 APPMOD = PD6_Sensor
 
+USE_ADDRESSING = y
+
 PROJDIR = $(CURDIR)
 ifndef MOSROOT
   MOSROOT = /workspaces/MansOS

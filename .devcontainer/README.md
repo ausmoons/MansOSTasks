@@ -11,13 +11,17 @@ This devcontainer provides a complete Linux-based development environment for Ma
 2. **VS Code Extensions**
    - Install "Dev Containers" extension (ms-vscode-remote.remote-containers)
 
+3. **usbipd-win** (for USB mote access) — run once in PowerShell as Administrator:
+   ```powershell
+   winget install --interactive --exact dorssel.usbipd-win
+   ```
+
 ## Getting Started
 
 1. Open this folder in VS Code
 2. Press `F1` and select **"Dev Containers: Reopen in Container"**
 3. **First time only**: Wait for Docker to build the image (~2-3 minutes)
    - Subsequent opens will be much faster (5-10 seconds)
-   - The image is cached, so you only build once
 
 ## Included Tools
 
@@ -27,62 +31,54 @@ The devcontainer automatically installs:
 - **Python tools**: python3, python3-ply, python3-serial, pyserial
 - **Build tools**: make, gcc
 
-## Connecting Physical Motes (USB Serial Devices)
+## Connecting a Mote (every time you plug one in)
 
-### Option 1: USB/IP (Recommended for WSL 2)
+Do these steps in **Windows PowerShell as Administrator** each time you connect a mote:
 
-Docker Desktop on Windows with WSL 2 requires USB/IP to access USB devices:
+**Step 1** — Find the mote's BUSID:
+```powershell
+usbipd list
+```
+Look for "USB Serial Converter" — note its BUSID (e.g. `2-1`).
 
-1. **Install usbipd-win on Windows** (run in PowerShell as Administrator):
-   ```powershell
-   winget install --interactive --exact dorssel.usbipd-win
-   ```
+**Step 2** — Bind and attach it to WSL (replace `2-1` with your BUSID):
+```powershell
+usbipd bind --busid 2-1
+usbipd attach --wsl --busid 2-1
+wsl -d docker-desktop -- modprobe ftdi_sio
+```
+> Note: `bind` is only needed the first time for each mote. After that, just `attach` and `modprobe`.
 
-2. **List connected USB devices** (in PowerShell):
-   ```powershell
-   usbipd list
-   ```
+**Step 3** — Back in the container terminal, fix permissions:
+```bash
+sudo chmod 666 /dev/ttyUSB0
+```
 
-3. **Bind your mote device** (replace `BUSID` with your device's bus ID):
-   ```powershell
-   usbipd bind --busid BUSID
-   ```
-
-4. **Attach the device to WSL** (do this each time you connect the mote):
-   ```powershell
-   usbipd attach --wsl --busid BUSID
-   ```
-
-5. **Verify in container**:
-   ```bash
-   ls /dev/ttyUSB* /dev/ttyACM*
-   ```
-
-### Option 2: Docker with Hyper-V
-
-If using Docker with Hyper-V backend, USB passthrough is more complex. Consider using WSL 2 backend instead.
+**Step 4** — Verify the mote is detected:
+```bash
+python3 /workspaces/MansOS/tools/lib/motelist.py
+```
 
 ## Building and Uploading
 
-1. Navigate to a demo app:
-   ```bash
-   cd apps/demo/Blink
-   ```
+Navigate to your app directory and run:
 
-2. **Build for your platform** (e.g., telosb):
-   ```bash
-   make telosb
-   ```
+```bash
+cd /workspaces/MansOS/apps/demo/PD5/rx
 
-3. **Upload to mote**:
-   ```bash
-   make telosb upload
-   ```
+# Clean, build and upload in one command:
+make clean && make telosb upload
+```
 
-4. **List connected motes**:
-   ```bash
-   python3 ../../../tools/lib/motelist.py
-   ```
+To build only (without uploading):
+```bash
+make telosb
+```
+
+To upload previously built firmware:
+```bash
+make telosb upload
+```
 
 ## Supported Platforms
 
@@ -95,40 +91,37 @@ If using Docker with Hyper-V backend, USB passthrough is more complex. Consider 
 
 ## Testing Without Hardware
 
-Use the PC platform for testing without physical hardware:
-
 ```bash
 cd apps/demo/Blink
-make pc
 make pc run
 ```
 
 ## Troubleshooting
 
-### Container opening is slow
+### Mote not showing up (`/dev/ttyUSB0` missing)
 
-If the container is taking too long to open:
-1. First build is ~2-3 minutes (normal)
-2. If subsequent opens are slow, rebuild: `F1` → **"Dev Containers: Rebuild Container"**
-3. Check Docker Desktop is running and not updating
+1. Re-run the PowerShell steps above (bind → attach → modprobe)
+2. Check the mote is detected in the kernel log inside the container:
+   ```bash
+   dmesg | tail -20
+   ```
+   You should see lines mentioning `tmote sky` or `FT232`.
 
 ### "Permission denied" on /dev/ttyUSB0
 
-Add your user to dialout group:
+Run inside the container:
 ```bash
-sudo usermod -a -G dialout $USER
+sudo chmod 666 /dev/ttyUSB0
 ```
-Then restart the container.
 
-### Mote not detected
+### Container opening is slow
 
-1. Verify USB passthrough: `lsusb` should show your device
-2. Check serial ports: `ls -l /dev/tty*`
-3. Try running motelist: `python3 tools/lib/motelist.py`
+First build is ~2-3 minutes (normal). If subsequent opens are slow:
+`F1` → **"Dev Containers: Rebuild Container"**
 
 ### Build errors
 
-Make sure you're in an app directory (e.g., `apps/demo/Blink`) when running make commands.
+Make sure you are inside an app directory (e.g. `apps/demo/PD5/rx`) when running make commands.
 
 ## Additional Resources
 
